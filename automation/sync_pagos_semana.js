@@ -25,7 +25,7 @@
 //   FECHA_DESDE, FECHA_HASTA     (opcional, DD/MM/YYYY) → semana de ENTREGA a
 //                                procesar. Para backfill / re-corridas.
 //                                Si no se pasan: semana cerrada anterior
-//                                (lunes–sábado de la semana pasada).
+//                                (última semana lunes–sábado cerrada).
 //   DIAS_BUFFER  (opcional, default 0) días antes del lunes para ampliar la
 //                ventana de descarga. Con tipo_fecha=2 no hace falta (=0).
 //   TIPO_FECHA   (opcional, default 2 = "Fecha Entregado").
@@ -118,9 +118,13 @@ async function main() {
     entregaDesde = parseDDMMYYYY(process.env.FECHA_DESDE);
     entregaHasta = parseDDMMYYYY(process.env.FECHA_HASTA);
   } else {
-    // semana cerrada anterior: lunes..sábado de la semana pasada
-    const lunesEsta = mondayOf(new Date());
-    entregaDesde = new Date(lunesEsta); entregaDesde.setDate(lunesEsta.getDate() - 7); // lunes pasado
+    // última semana cerrada (lunes..sábado). Corre el DOMINGO: mondayOf(domingo)
+    // ya es el lunes de la semana que acaba de cerrar. Si Actions lo demora y
+    // cae lunes (UTC), se usa el lunes anterior → misma semana.
+    const hoy = new Date();
+    const lunesEsta = mondayOf(hoy);
+    entregaDesde = new Date(lunesEsta);
+    if (hoy.getDay() !== 0) entregaDesde.setDate(lunesEsta.getDate() - 7); // lun–sáb: la semana pasada
     entregaHasta = new Date(entregaDesde); entregaHasta.setDate(entregaDesde.getDate() + 5); // sábado pasado
   }
   entregaDesde.setHours(0, 0, 0, 0);
